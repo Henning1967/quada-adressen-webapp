@@ -1,4 +1,4 @@
-# Benutzerhandbuch – T4 Adressverwaltung Web-App
+# Benutzerhandbuch – MQ6 Adressverwaltung Web-App
 
 **Version:** 1.0
 **Stand:** März 2026
@@ -39,7 +39,7 @@
 
 ## 1. Übersicht
 
-Die **T4 Adressverwaltung Web-App** ist eine browserbasierte Anwendung zur Verwaltung von Geschäftspartnern (Kunden, Lieferanten, Personal u. a.). Sie basiert auf den Feldern und Konzepten des T4-ERP-Systems der TETRA GmbH und ist als eigenständige HTML-Datei konzipiert – ohne Installation, ohne Server, ohne Internetzugang.
+Die **MQ6 Adressverwaltung Web-App** ist eine browserbasierte Anwendung zur Verwaltung von Geschäftspartnern (Kunden, Lieferanten, Personal u. a.). Sie basiert auf den Feldern und Konzepten des T4-ERP-Systems der TETRA GmbH und ist als eigenständige HTML-Datei konzipiert – ohne Installation, ohne Server, ohne Internetzugang.
 
 ### Was kann die Anwendung?
 
@@ -469,5 +469,5 @@ A: Ja. Füllen Sie sowohl die **Kundengruppe** im Reiter „Kunde" als auch die 
 
 ---
 
-*© 2026 – Benutzerhandbuch für die T4 Adressverwaltung Web-App*
+*© 2026 – Benutzerhandbuch für die MQ6 Adressverwaltung Web-App*
 *Erstellt auf Basis des „Themenhandbuch Adressen" der TETRA GmbH, Wachtberg*

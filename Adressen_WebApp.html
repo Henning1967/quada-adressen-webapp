@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>T4 – Adressverwaltung</title>
+  <title>MQ6 Adressverwaltung</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
@@ -11,11 +11,11 @@
       --sidebar-w: 280px;
       --toolbar-h: 50px;
       --statusbar-h: 26px;
-      --primary: #1a4b8c;
-      --primary-light: #2563c0;
+      --primary: #59191f;
+      --primary-light: #7d2329;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; background: #e9eef5; overflow: hidden; height: 100vh; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; background: #f2eced; overflow: hidden; height: 100vh; }
 
     /* ── TOOLBAR ── */
     #toolbar {
@@ -40,16 +40,16 @@
     #main { display:flex; height:calc(100vh - var(--toolbar-h) - var(--statusbar-h)); }
 
     /* ── SIDEBAR ── */
-    #sidebar { width:var(--sidebar-w); background:#fff; border-right:1px solid #d0d7e3; display:flex; flex-direction:column; flex-shrink:0; }
-    #sb-head { padding:8px; border-bottom:1px solid #dee2e6; background:#f4f6fa; }
+    #sidebar { width:var(--sidebar-w); background:#fff; border-right:1px solid #ddd0d1; display:flex; flex-direction:column; flex-shrink:0; }
+    #sb-head { padding:8px; border-bottom:1px solid #ddd0d1; background:#f9f2f2; }
     #sb-head input { font-size:12px; }
     #addr-list { flex:1; overflow-y:auto; }
     .addr-item { padding:7px 10px; border-bottom:1px solid #f0f0f0; cursor:pointer; display:flex; align-items:center; gap:7px; }
-    .addr-item:hover { background:#eef3fc; }
+    .addr-item:hover { background:#f9eaea; }
     .addr-item.active { background:var(--primary); color:#fff; }
     .ai-name { font-weight:600; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ai-sub  { font-size:11px; color:#6c757d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .addr-item.active .ai-sub { color:#b8d0f5; }
+    .addr-item.active .ai-sub { color:#e8bbbe; }
     .ai-icon { font-size:15px; color:#888; flex-shrink:0; }
     .addr-item.active .ai-icon { color:#fff; }
     .grp-badge { font-size:9px; padding:1px 4px; border-radius:3px; flex-shrink:0; }
@@ -60,14 +60,14 @@
     .no-sel { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#bbb; gap:8px; }
 
     /* ── CARDS ── */
-    .sc { background:#fff; border:1px solid #d0d7e3; border-radius:5px; margin-bottom:9px; }
-    .sc-h { background:#e4eaf5; padding:4px 11px; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--primary); border-bottom:1px solid #d0d7e3; border-radius:4px 4px 0 0; }
+    .sc { background:#fff; border:1px solid #ddd0d1; border-radius:5px; margin-bottom:9px; }
+    .sc-h { background:#f2e0e1; padding:4px 11px; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--primary); border-bottom:1px solid #ddd0d1; border-radius:4px 4px 0 0; }
     .sc-b { padding:9px 11px; }
 
     /* ── FORM CONTROLS ── */
     .form-label { font-size:11px; font-weight:600; color:#495057; margin-bottom:2px; }
     .form-control, .form-select { font-size:12px; padding:3px 7px; height:27px; }
-    .form-control:focus, .form-select:focus { border-color:var(--primary-light); box-shadow:0 0 0 2px rgba(37,99,192,.15); }
+    .form-control:focus, .form-select:focus { border-color:var(--primary-light); box-shadow:0 0 0 2px rgba(89,25,31,.15); }
     .input-group-text { font-size:13px; padding:0 8px; }
 
     /* ── GROUP TABS ── */
@@ -76,7 +76,7 @@
     .gtabs .nav-link.has-data { color:#333; }
 
     /* ── SUBTABLE AREA ── */
-    #sub-area { background:#fff; border:1px solid #d0d7e3; border-radius:5px; margin-bottom:0; }
+    #sub-area { background:#fff; border:1px solid #ddd0d1; border-radius:5px; margin-bottom:0; }
     .stabs .nav-link { font-size:11px; padding:5px 13px; color:#555; border:none; }
     .stabs .nav-link.active { font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); }
     .stabs { border-bottom:2px solid #dee2e6; padding:0 8px; }
@@ -84,7 +84,7 @@
 
     /* ── SUBTABLE ── */
     .stbl { font-size:12px; }
-    .stbl th { font-size:11px; font-weight:700; background:#f4f6fa; padding:4px 7px; color:#495057; }
+    .stbl th { font-size:11px; font-weight:700; background:#f9f2f2; padding:4px 7px; color:#495057; }
     .stbl td { padding:3px 7px; vertical-align:middle; }
     .stbl tbody tr:hover { background:#f8f9fa; }
     .stbl .form-control, .stbl .form-select { height:24px; font-size:11px; padding:2px 5px; }
@@ -101,7 +101,7 @@
 
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width:6px; }
-    ::-webkit-scrollbar-thumb { background:#c0c9d6; border-radius:3px; }
+    ::-webkit-scrollbar-thumb { background:#d4b8ba; border-radius:3px; }
 
     /* ── TAG BADGES ── */
     .tag-badge { font-size:11px; padding:4px 9px; border-radius:12px; background:#6c757d; color:#fff; display:inline-flex; align-items:center; gap:4px; }
@@ -114,7 +114,7 @@
 
   <!-- ═══════════════ TOOLBAR ═══════════════ -->
   <div id="toolbar">
-    <span class="t-title"><i class="bi bi-building-fill"></i> T4 Adressverwaltung</span>
+    <span class="t-title"><i class="bi bi-building-fill"></i> MQ6 Adressverwaltung</span>
     <div class="t-sep"></div>
     <button class="tbtn" @click="newAddress"><i class="bi bi-file-earmark-plus"></i>Neu</button>
     <button class="tbtn" @click="saveAddress" :disabled="!isDirty"><i class="bi bi-floppy"></i>Speichern</button>
