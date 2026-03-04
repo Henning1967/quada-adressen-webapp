@@ -1,0 +1,7 @@
+# Originaldokumente (binär, nicht versionieren)
+*.pdf
+
+# System
+.DS_Store
+Thumbs.db
+desktop.ini
