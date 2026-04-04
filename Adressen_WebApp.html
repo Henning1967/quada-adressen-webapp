@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQ6 Adressverwaltung</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-w: 280px;
+      --toolbar-h: 50px;
+      --statusbar-h: 26px;
+      --primary: #59191f;
+      --primary-light: #7d2329;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; background: #f2eced; overflow: hidden; height: 100vh; }
+
+    /* ── TOOLBAR ── */
+    #toolbar {
+      height: var(--toolbar-h); background: var(--primary);
+      display: flex; align-items: center; padding: 0 10px; gap: 2px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    }
+    .t-title { color:#fff; font-size:15px; font-weight:700; padding: 0 10px 0 4px; display:flex; align-items:center; gap:6px; }
+    .t-sep { width:1px; height:32px; background:rgba(255,255,255,.3); margin:0 4px; }
+    .tbtn {
+      display:flex; flex-direction:column; align-items:center; gap:1px;
+      padding:3px 9px; background:transparent; border:1px solid transparent;
+      border-radius:4px; color:#fff; cursor:pointer; font-size:10px; line-height:1;
+      transition:background .15s;
+    }
+    .tbtn i { font-size:17px; }
+    .tbtn:hover { background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.35); }
+    .tbtn:disabled { opacity:.4; cursor:default; }
+    .tbtn:disabled:hover { background:transparent; border-color:transparent; }
+
+    /* ── MAIN ── */
+    #main { display:flex; height:calc(100vh - var(--toolbar-h) - var(--statusbar-h)); }
+
+    /* ── SIDEBAR ── */
+    #sidebar { width:var(--sidebar-w); background:#fff; border-right:1px solid #ddd0d1; display:flex; flex-direction:column; flex-shrink:0; }
+    #sb-head { padding:8px; border-bottom:1px solid #ddd0d1; background:#f9f2f2; }
+    #sb-head input { font-size:12px; }
+    #addr-list { flex:1; overflow-y:auto; }
+    .addr-item { padding:7px 10px; border-bottom:1px solid #f0f0f0; cursor:pointer; display:flex; align-items:center; gap:7px; }
+    .addr-item:hover { background:#f9eaea; }
+    .addr-item.active { background:var(--primary); color:#fff; }
+    .ai-name { font-weight:600; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ai-sub  { font-size:11px; color:#6c757d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .addr-item.active .ai-sub { color:#e8bbbe; }
+    .ai-icon { font-size:15px; color:#888; flex-shrink:0; }
+    .addr-item.active .ai-icon { color:#fff; }
+    .grp-badge { font-size:9px; padding:1px 4px; border-radius:3px; flex-shrink:0; }
+
+    /* ── CONTENT ── */
+    #content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    #form-area { flex:1; overflow-y:auto; padding:10px 12px; }
+    .no-sel { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#bbb; gap:8px; }
+
+    /* ── CARDS ── */
+    .sc { background:#fff; border:1px solid #ddd0d1; border-radius:5px; margin-bottom:9px; }
+    .sc-h { background:#f2e0e1; padding:4px 11px; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--primary); border-bottom:1px solid #ddd0d1; border-radius:4px 4px 0 0; }
+    .sc-b { padding:9px 11px; }
+
+    /* ── FORM CONTROLS ── */
+    .form-label { font-size:11px; font-weight:600; color:#495057; margin-bottom:2px; }
+    .form-control, .form-select { font-size:12px; padding:3px 7px; height:27px; }
+    .form-control:focus, .form-select:focus { border-color:var(--primary-light); box-shadow:0 0 0 2px rgba(89,25,31,.15); }
+    .input-group-text { font-size:13px; padding:0 8px; }
+
+    /* ── GROUP TABS ── */
+    .gtabs .nav-link { font-size:11px; font-weight:700; padding:3px 11px; color:#888; }
+    .gtabs .nav-link.active { color:var(--primary); background:#fff; }
+    .gtabs .nav-link.has-data { color:#333; }
+
+    /* ── SUBTABLE AREA ── */
+    #sub-area { background:#fff; border:1px solid #ddd0d1; border-radius:5px; margin-bottom:0; }
+    .stabs .nav-link { font-size:11px; padding:5px 13px; color:#555; border:none; }
+    .stabs .nav-link.active { font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary); }
+    .stabs { border-bottom:2px solid #dee2e6; padding:0 8px; }
+    #sub-content { min-height:140px; max-height:215px; overflow-y:auto; padding:8px; }
+
+    /* ── SUBTABLE ── */
+    .stbl { font-size:12px; }
+    .stbl th { font-size:11px; font-weight:700; background:#f9f2f2; padding:4px 7px; color:#495057; }
+    .stbl td { padding:3px 7px; vertical-align:middle; }
+    .stbl tbody tr:hover { background:#f8f9fa; }
+    .stbl .form-control, .stbl .form-select { height:24px; font-size:11px; padding:2px 5px; }
+
+    /* ── LOCKED BANNER ── */
+    .locked-banner { background:#fff3cd; border:1px solid #ffc107; border-radius:4px; padding:4px 11px; font-size:11px; display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+
+    /* ── STATUS BAR ── */
+    #statusbar { height:var(--statusbar-h); background:#2c3238; color:#adb5bd; display:flex; align-items:center; padding:0 12px; font-size:11px; gap:14px; }
+    .s-dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    .s-dot.ok   { background:#28a745; }
+    .s-dot.warn { background:#ffc107; }
+    .s-item { display:flex; align-items:center; gap:5px; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-thumb { background:#d4b8ba; border-radius:3px; }
+
+    /* ── TAG BADGES ── */
+    .tag-badge { font-size:11px; padding:4px 9px; border-radius:12px; background:#6c757d; color:#fff; display:inline-flex; align-items:center; gap:4px; }
+    .tag-badge .bi-x { cursor:pointer; opacity:.75; }
+    .tag-badge .bi-x:hover { opacity:1; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══════════════ TOOLBAR ═══════════════ -->
+  <div id="toolbar">
+    <span class="t-title"><i class="bi bi-building-fill"></i> MQ6 Adressverwaltung</span>
+    <div class="t-sep"></div>
+    <button class="tbtn" @click="newAddress"><i class="bi bi-file-earmark-plus"></i>Neu</button>
+    <button class="tbtn" @click="saveAddress" :disabled="!isDirty"><i class="bi bi-floppy"></i>Speichern</button>
+    <button class="tbtn" @click="deleteAddress" :disabled="!currentId"><i class="bi bi-trash3"></i>Löschen</button>
+    <div class="t-sep"></div>
+    <button class="tbtn" @click="focusSearch"><i class="bi bi-search"></i>Suche</button>
+    <button class="tbtn" @click="toggleBookmark" :disabled="!currentId" :title="currentAddress?.bookmark ? 'Lesezeichen entfernen' : 'Als Lesezeichen markieren'">
+      <i class="bi" :class="currentAddress?.bookmark ? 'bi-bookmark-star-fill text-warning' : 'bi-bookmark-star'"></i>Lesezeichen
+    </button>
+    <div class="t-sep"></div>
+    <button class="tbtn" @click="prevAddress" :disabled="!canPrev"><i class="bi bi-chevron-left"></i>Zurück</button>
+    <button class="tbtn" @click="nextAddress" :disabled="!canNext"><i class="bi bi-chevron-right"></i>Vor</button>
+    <div class="ms-auto" style="color:rgba(255,255,255,.6);font-size:11px;">{{ filteredAddresses.length }} / {{ addresses.length }} Adressen</div>
+  </div>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <div id="main">
+
+    <!-- ─── SIDEBAR ─── -->
+    <div id="sidebar">
+      <div id="sb-head">
+        <input ref="searchInput" v-model="searchQuery" class="form-control form-control-sm mb-1" placeholder="🔍 Name, Ort, Adress-Nr. …">
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm flex-fill" style="font-size:10px;" :class="filterGroup==='' ? 'btn-primary' : 'btn-outline-secondary'" @click="filterGroup=''">Alle</button>
+          <button class="btn btn-sm flex-fill" style="font-size:10px;" :class="filterGroup==='Kunde' ? 'btn-primary' : 'btn-outline-secondary'" @click="filterGroup='Kunde'">Kunden</button>
+          <button class="btn btn-sm flex-fill" style="font-size:10px;" :class="filterGroup==='Lieferant' ? 'btn-success' : 'btn-outline-secondary'" @click="filterGroup='Lieferant'">Lief.</button>
+          <button class="btn btn-sm flex-fill" style="font-size:10px;" :class="filterGroup==='Personal' ? 'btn-warning' : 'btn-outline-secondary'" @click="filterGroup='Personal'">Perso</button>
+        </div>
+      </div>
+      <div id="addr-list">
+        <div v-for="addr in filteredAddresses" :key="addr.id"
+             class="addr-item" :class="{active: addr.id === currentId}"
+             @click="selectAddress(addr)">
+          <i class="ai-icon bi" :class="addrIcon(addr)"></i>
+          <div style="flex:1;min-width:0;">
+            <div class="ai-name">
+              <i v-if="addr.gesperrt" class="bi bi-lock-fill text-danger me-1" style="font-size:10px;"></i>
+              <i v-if="addr.bookmark" class="bi bi-bookmark-star-fill text-warning me-1" style="font-size:10px;"></i>
+              {{ addr.name || '–' }}
+            </div>
+            <div class="ai-sub">{{ addr.adressNr }} · {{ addr.plz }} {{ addr.ort }}</div>
+          </div>
+          <div class="d-flex flex-column gap-1">
+            <span v-if="addr.kundengruppe"     class="grp-badge bg-primary text-white">K</span>
+            <span v-if="addr.lieferantengruppe" class="grp-badge bg-success text-white">L</span>
+            <span v-if="addr.personalgruppe"    class="grp-badge bg-warning text-dark">P</span>
+          </div>
+        </div>
+        <div v-if="filteredAddresses.length===0" class="p-3 text-center text-muted" style="font-size:12px;">Keine Treffer</div>
+      </div>
+    </div>
+
+    <!-- ─── CONTENT ─── -->
+    <div id="content">
+
+      <!-- Empty state -->
+      <div v-if="!currentAddress" class="no-sel">
+        <i class="bi bi-building" style="font-size:52px;"></i>
+        <p>Adresse auswählen oder <a href="#" @click.prevent="newAddress">neu anlegen</a></p>
+      </div>
+
+      <!-- Address form -->
+      <div v-else id="form-area">
+
+        <!-- Locked banner -->
+        <div v-if="currentAddress.gesperrt" class="locked-banner">
+          <i class="bi bi-lock-fill text-warning"></i>
+          <strong>Datensatz gesperrt</strong> – Bearbeitung eingeschränkt
+        </div>
+
+        <!-- ── IDENTIFIKATION ── -->
+        <div class="sc">
+          <div class="sc-h">Identifikation</div>
+          <div class="sc-b">
+            <div class="row g-2">
+              <div class="col-md-2">
+                <label class="form-label">Adress-Nr. <span class="text-danger">*</span></label>
+                <input v-model="currentAddress.adressNr" class="form-control" @input="markDirty">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Kunden-Nr./GLN</label>
+                <input v-model="currentAddress.kundenNr" class="form-control" @input="markDirty" placeholder="leer = Adress-Nr.">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Lieferanten-Nr.</label>
+                <input v-model="currentAddress.lieferantenNr" class="form-control" @input="markDirty">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">HR-Nr.</label>
+                <input v-model="currentAddress.hrNr" class="form-control" @input="markDirty" placeholder="z.B. HRB 12345 Bonn">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">USt-Nr.</label>
+                <div class="input-group">
+                  <span class="input-group-text">€</span>
+                  <input v-model="currentAddress.ustNr" class="form-control" @input="markDirty">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TWO COLUMNS: Adressdaten + Spezifikation/Gruppen ── -->
+        <div class="row g-2 mb-2">
+
+          <!-- LEFT: Adressdaten -->
+          <div class="col-xl-7 col-lg-6">
+            <div class="sc" style="height:100%;">
+              <div class="sc-h">Adressdaten</div>
+              <div class="sc-b">
+                <div class="row g-2">
+                  <div class="col-5">
+                    <label class="form-label">Anrede <span class="text-danger">*</span></label>
+                    <select v-model="currentAddress.anrede" class="form-select" @change="markDirty">
+                      <option value="">– bitte wählen –</option>
+                      <optgroup label="Deutsch – Jur. Person">
+                        <option>Firma</option><option>Institution</option><option>Verband/Behörde</option>
+                      </optgroup>
+                      <optgroup label="Deutsch – Nat. Person">
+                        <option>Herr</option><option>Frau</option><option>Divers</option>
+                        <option>Familie</option><option>Herr und Frau</option>
+                      </optgroup>
+                      <optgroup label="English">
+                        <option>Mr.</option><option>Mrs.</option><option>Ms.</option><option>Company</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div class="col-7">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input v-model="currentAddress.name" class="form-control" @input="markDirty" placeholder="Firmen- oder Personenname">
+                  </div>
+                  <div class="col-8">
+                    <label class="form-label">Straße / Hausnummer</label>
+                    <input v-model="currentAddress.strasse" class="form-control" @input="markDirty">
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label">Postfach</label>
+                    <input v-model="currentAddress.postfach" class="form-control" @input="markDirty" placeholder="Nr. ohne Titel">
+                  </div>
+                  <div class="col-2">
+                    <label class="form-label">PLZ</label>
+                    <input v-model="currentAddress.plz" class="form-control" @input="markDirty">
+                  </div>
+                  <div class="col-5">
+                    <label class="form-label">Ort</label>
+                    <input v-model="currentAddress.ort" class="form-control" @input="markDirty">
+                  </div>
+                  <div class="col-2">
+                    <label class="form-label">Pf-PLZ</label>
+                    <input v-model="currentAddress.postfachPlz" class="form-control" @input="markDirty">
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">
+                      <i v-if="currentAddress.nation !== 'Deutschland'" class="bi bi-globe me-1"></i>Nation
+                    </label>
+                    <select v-model="currentAddress.nation" class="form-select" @change="markDirty">
+                      <option>Deutschland</option><option>Österreich</option><option>Schweiz</option>
+                      <option>Frankreich</option><option>Niederlande</option><option>Belgien</option>
+                      <option>Luxemburg</option><option>Italien</option><option>Spanien</option>
+                      <option>Polen</option><option>Tschechien</option><option>USA</option>
+                      <option>Großbritannien</option><option>China</option><option>Japan</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Spezifikation + Gruppen -->
+          <div class="col-xl-5 col-lg-6 d-flex flex-column gap-2">
+
+            <!-- Spezifikation -->
+            <div class="sc">
+              <div class="sc-h">Unternehmensspezifikation</div>
+              <div class="sc-b">
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label">Betriebstyp</label>
+                    <select v-model="currentAddress.betriebstyp" class="form-select" @change="markDirty">
+                      <option value="">–</option><option>Produktion</option><option>Handel</option>
+                      <option>Dienstleistung</option><option>Handwerk</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Branche</label>
+                    <select v-model="currentAddress.branche" class="form-select" @change="markDirty">
+                      <option value="">–</option><option>IT / Software</option><option>Handel</option>
+                      <option>Großhandel</option><option>Einzelhandel</option><option>Automotive</option>
+                      <option>Maschinenbau</option><option>Chemie</option><option>Lebensmittel</option>
+                      <option>Gesundheit</option><option>Logistik</option><option>Finanzen</option>
+                      <option>Öffentlich</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Umsatz (€)</label>
+                    <input type="number" v-model="currentAddress.umsatz" class="form-control" @input="markDirty" placeholder="Jahresumsatz ca.">
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Mitarbeiter</label>
+                    <input type="number" v-model="currentAddress.mitarbeiter" class="form-control" @input="markDirty">
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Km</label>
+                    <input type="number" v-model="currentAddress.entfernungKm" class="form-control" @input="markDirty">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Innendienst</label>
+                    <select v-model="currentAddress.innendienst" class="form-select" @change="markDirty">
+                      <option value="">–</option><option>Schmidt, K.</option><option>Meyer, T.</option>
+                      <option>Wolter, H.</option><option>Wagner, S.</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Außendienst</label>
+                    <select v-model="currentAddress.aussendienst" class="form-select" @change="markDirty">
+                      <option value="">–</option><option>Braun, M.</option><option>Fischer, A.</option>
+                      <option>Becker, J.</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gruppenfelder -->
+            <div class="sc" style="flex:1;">
+              <div class="sc-h">Gruppenfelder</div>
+              <div class="sc-b pt-1">
+                <ul class="nav nav-tabs gtabs mb-2">
+                  <li class="nav-item" v-for="gt in groupTabs" :key="gt.key">
+                    <a class="nav-link" :class="{active: activeGTab===gt.key, 'has-data': hasGroup(gt.key)}"
+                       href="#" @click.prevent="activeGTab=gt.key">{{ gt.label }}</a>
+                  </li>
+                </ul>
+
+                <!-- Kunde -->
+                <div v-if="activeGTab==='kunde'">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label">Kundengruppe</label>
+                      <select v-model="currentAddress.kundengruppe" class="form-select" @change="markDirty">
+                        <option value="">– kein Kunde –</option>
+                        <option>Endkunde</option><option>Großkunde</option><option>Händler</option>
+                        <option>Interessent</option><option>Key Account</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label">Vor-Kauf-Status</label>
+                      <select v-model="currentAddress.vorKaufStatus" class="form-select" @change="markDirty">
+                        <option value="">–</option><option>Interessent</option><option>Angebot</option>
+                        <option>Entscheidungsphase</option><option>Stammkunde</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label">Nach-Kauf-Status</label>
+                      <select v-model="currentAddress.nachKaufStatus" class="form-select" @change="markDirty">
+                        <option value="">–</option><option>Aktiv</option><option>Inaktiv</option><option>Gesperrt</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label">Zufriedenheit</label>
+                      <select v-model="currentAddress.zufriedenheit" class="form-select" @change="markDirty">
+                        <option value="">😐 indifferent</option><option value="unzufrieden">😠 unzufrieden</option>
+                        <option value="zufrieden">😊 zufrieden</option><option value="Referenz">😄 Referenz</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label">ABC-Klasse</label>
+                      <select v-model="currentAddress.abcKlasse" class="form-select" @change="markDirty">
+                        <option value="">–</option><option>A-Kunde</option><option>B-Kunde</option><option>C-Kunde</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Lieferant -->
+                <div v-if="activeGTab==='lieferant'">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label">Lieferantengruppe</label>
+                      <select v-model="currentAddress.lieferantengruppe" class="form-select" @change="markDirty">
+                        <option value="">– kein Lieferant –</option>
+                        <option>Stamm-Lieferant</option><option>Gelegenheits-Lieferant</option><option>Anfrage-Lieferant</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label">Anfragestatus</label>
+                      <select v-model="currentAddress.anfragestatus" class="form-select" @change="markDirty">
+                        <option value="">–</option><option>Neu</option><option>Angefragt</option><option>Qualifiziert</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label">Lieferantenstatus</label>
+                      <select v-model="currentAddress.lieferantenstatus" class="form-select" @change="markDirty">
+                        <option value="">–</option><option>Aktiv</option><option>Inaktiv</option><option>Gesperrt</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Zufriedenheit</label>
+                      <select v-model="currentAddress.liefZufriedenheit" class="form-select" @change="markDirty">
+                        <option value="">😐 indifferent</option><option value="unzufrieden">😠 unzufrieden</option>
+                        <option value="zufrieden">😊 zufrieden</option><option value="Referenz">😄 Referenz</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Personal -->
+                <div v-if="activeGTab==='personal'">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label">Personalgruppe</label>
+                      <select v-model="currentAddress.personalgruppe" class="form-select" @change="markDirty">
+                        <option value="">– kein Personal –</option>
+                        <option>Mitarbeiter</option><option>Bewerber</option>
+                        <option>Freie Mitarbeit</option><option>Auszubildende</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sonstiges -->
+                <div v-if="activeGTab==='sonstiges'">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label">Sonstige Gruppe</label>
+                      <select v-model="currentAddress.sonstigeGruppe" class="form-select" @change="markDirty">
+                        <option value="">– keine Zugehörigkeit –</option>
+                        <option>Behörde</option><option>Verband</option><option>Partnerschaft</option>
+                      </select>
+                    </div>
+                    <div class="col-12 pt-1">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" v-model="currentAddress.gesperrt" @change="markDirty" id="chkGesperrt">
+                        <label class="form-check-label" for="chkGesperrt" style="font-size:12px;">
+                          <i class="bi bi-lock-fill text-danger"></i> Datensatz gesperrt
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div><!-- end row -->
+
+        <!-- ── UNTERTABELLEN ── -->
+        <div id="sub-area">
+          <ul class="nav stabs pt-1">
+            <li class="nav-item" v-for="st in subTabs" :key="st.key">
+              <a class="nav-link" :class="{active: activeSTab===st.key}" href="#" @click.prevent="activeSTab=st.key">
+                <i class="bi me-1" :class="st.icon"></i>{{ st.label }}
+                <span v-if="subCount(st.key)>0" class="badge bg-secondary ms-1" style="font-size:9px;">{{ subCount(st.key) }}</span>
+              </a>
+            </li>
+          </ul>
+
+          <div id="sub-content">
+
+            <!-- KOMMUNIKATION -->
+            <template v-if="activeSTab==='kom'">
+              <div class="d-flex justify-content-end mb-1">
+                <button class="btn btn-sm btn-primary" style="font-size:11px;" @click="addRow('kommunikation',{typ:'Telefon',nummer:'',bemerkung:''})">
+                  <i class="bi bi-plus"></i> Neu
+                </button>
+              </div>
+              <table class="table table-sm stbl table-bordered mb-0">
+                <thead><tr><th style="width:110px;">Typ</th><th>Nummer / Adresse</th><th>Bemerkung</th><th style="width:50px;"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(r,i) in currentAddress.kommunikation" :key="r.id">
+                    <td>
+                      <select v-model="r.typ" class="form-select" @change="markDirty">
+                        <option>Telefon</option><option>Mobil</option><option>Fax</option>
+                        <option>E-Mail</option><option>Website</option><option>Skype</option>
+                        <option>Teams</option><option>Daten-Pfad</option>
+                      </select>
+                    </td>
+                    <td><input v-model="r.nummer" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.bemerkung" class="form-control" @input="markDirty"></td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger px-1 py-0" @click="delRow('kommunikation',i)"><i class="bi bi-trash" style="font-size:11px;"></i></button></td>
+                  </tr>
+                  <tr v-if="!currentAddress.kommunikation.length"><td colspan="4" class="text-center text-muted py-2">Keine Einträge</td></tr>
+                </tbody>
+              </table>
+            </template>
+
+            <!-- ANSPRECHPARTNER -->
+            <template v-if="activeSTab==='asp'">
+              <div class="d-flex justify-content-end mb-1">
+                <button class="btn btn-sm btn-primary" style="font-size:11px;" @click="addRow('ansprechpartner',{anrede:'Herr',name:'',vorname:'',position:'',telefon:'',email:''})">
+                  <i class="bi bi-plus"></i> Neu
+                </button>
+              </div>
+              <table class="table table-sm stbl table-bordered mb-0">
+                <thead><tr><th style="width:65px;">Anrede</th><th>Nachname</th><th>Vorname</th><th>Position</th><th>Telefon</th><th>E-Mail</th><th style="width:50px;"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(r,i) in currentAddress.ansprechpartner" :key="r.id">
+                    <td><select v-model="r.anrede" class="form-select" @change="markDirty"><option>Herr</option><option>Frau</option><option>Divers</option></select></td>
+                    <td><input v-model="r.name" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.vorname" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.position" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.telefon" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.email" class="form-control" @input="markDirty"></td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger px-1 py-0" @click="delRow('ansprechpartner',i)"><i class="bi bi-trash" style="font-size:11px;"></i></button></td>
+                  </tr>
+                  <tr v-if="!currentAddress.ansprechpartner.length"><td colspan="7" class="text-center text-muted py-2">Keine Ansprechpartner</td></tr>
+                </tbody>
+              </table>
+            </template>
+
+            <!-- BANKKONTEN -->
+            <template v-if="activeSTab==='bank'">
+              <div class="d-flex justify-content-end mb-1">
+                <button class="btn btn-sm btn-primary" style="font-size:11px;" @click="addRow('bankkonten',{bank:'',iban:'',bic:'',kontoinh:''})">
+                  <i class="bi bi-plus"></i> Neu
+                </button>
+              </div>
+              <table class="table table-sm stbl table-bordered mb-0">
+                <thead><tr><th>Bank</th><th>IBAN</th><th>BIC</th><th>Kontoinhaber</th><th style="width:50px;"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(r,i) in currentAddress.bankkonten" :key="r.id">
+                    <td><input v-model="r.bank" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.iban" class="form-control" @input="markDirty" placeholder="DE89 …"></td>
+                    <td><input v-model="r.bic" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.kontoinh" class="form-control" @input="markDirty"></td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger px-1 py-0" @click="delRow('bankkonten',i)"><i class="bi bi-trash" style="font-size:11px;"></i></button></td>
+                  </tr>
+                  <tr v-if="!currentAddress.bankkonten.length"><td colspan="5" class="text-center text-muted py-2">Keine Bankverbindungen</td></tr>
+                </tbody>
+              </table>
+            </template>
+
+            <!-- KONDITIONEN -->
+            <template v-if="activeSTab==='kond'">
+              <div class="d-flex justify-content-end mb-1">
+                <button class="btn btn-sm btn-primary" style="font-size:11px;" @click="addRow('konditionen',{typ:'VK-Kondition',zahlungsziel:30,skonto:2,skontotage:10,waehrung:'EUR'})">
+                  <i class="bi bi-plus"></i> Neu
+                </button>
+              </div>
+              <table class="table table-sm stbl table-bordered mb-0">
+                <thead><tr><th>Typ</th><th>Ziel (Tage)</th><th>Skonto %</th><th>Skonto-Tage</th><th>Währung</th><th style="width:50px;"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(r,i) in currentAddress.konditionen" :key="r.id">
+                    <td><select v-model="r.typ" class="form-select" @change="markDirty"><option>VK-Kondition</option><option>EK-Kondition</option><option>Standard</option></select></td>
+                    <td><input type="number" v-model="r.zahlungsziel" class="form-control" @input="markDirty"></td>
+                    <td><input type="number" v-model="r.skonto" class="form-control" step="0.1" @input="markDirty"></td>
+                    <td><input type="number" v-model="r.skontotage" class="form-control" @input="markDirty"></td>
+                    <td><select v-model="r.waehrung" class="form-select" @change="markDirty"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select></td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger px-1 py-0" @click="delRow('konditionen',i)"><i class="bi bi-trash" style="font-size:11px;"></i></button></td>
+                  </tr>
+                  <tr v-if="!currentAddress.konditionen.length"><td colspan="6" class="text-center text-muted py-2">Keine Konditionen</td></tr>
+                </tbody>
+              </table>
+            </template>
+
+            <!-- SUCHBEGRIFFE -->
+            <template v-if="activeSTab==='such'">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input v-model="newTag" class="form-control form-control-sm" style="max-width:220px;" placeholder="Neuer Suchbegriff …" @keyup.enter="addTag">
+                <button class="btn btn-sm btn-primary" @click="addTag"><i class="bi bi-plus"></i> Hinzufügen</button>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <span v-for="(s,i) in currentAddress.suchbegriffe" :key="i" class="tag-badge">
+                  {{ s }}<i class="bi bi-x" @click="delRow('suchbegriffe',i)"></i>
+                </span>
+                <span v-if="!currentAddress.suchbegriffe.length" class="text-muted" style="font-size:12px;">Keine Suchbegriffe</span>
+              </div>
+            </template>
+
+            <!-- BEZIEHUNGEN -->
+            <template v-if="activeSTab==='bez'">
+              <div class="d-flex justify-content-end mb-1">
+                <button class="btn btn-sm btn-primary" style="font-size:11px;" @click="addRow('beziehungen',{typ:'Partner',adresse:'',betreff:''})">
+                  <i class="bi bi-plus"></i> Neu
+                </button>
+              </div>
+              <table class="table table-sm stbl table-bordered mb-0">
+                <thead><tr><th style="width:150px;">Beziehungstyp</th><th>Adresse</th><th>Betreff / Bemerkung</th><th style="width:50px;"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(r,i) in currentAddress.beziehungen" :key="r.id">
+                    <td>
+                      <select v-model="r.typ" class="form-select" @change="markDirty">
+                        <option>Konzernmutter</option><option>Tochtergesellschaft</option>
+                        <option>Partner</option><option>Konditionsherkunft</option>
+                        <option>Lieferadresse</option><option>Rechnungsadresse</option>
+                      </select>
+                    </td>
+                    <td><input v-model="r.adresse" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.betreff" class="form-control" @input="markDirty"></td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger px-1 py-0" @click="delRow('beziehungen',i)"><i class="bi bi-trash" style="font-size:11px;"></i></button></td>
+                  </tr>
+                  <tr v-if="!currentAddress.beziehungen.length"><td colspan="4" class="text-center text-muted py-2">Keine Beziehungen</td></tr>
+                </tbody>
+              </table>
+            </template>
+
+            <!-- INFOMERKMALE -->
+            <template v-if="activeSTab==='info'">
+              <div class="d-flex justify-content-end mb-1">
+                <button class="btn btn-sm btn-primary" style="font-size:11px;" @click="addRow('infomerkmale',{merkmal:'',wert:'',bemerkung:''})">
+                  <i class="bi bi-plus"></i> Neu
+                </button>
+              </div>
+              <table class="table table-sm stbl table-bordered mb-0">
+                <thead><tr><th>Merkmal</th><th>Wert</th><th>Bemerkung</th><th style="width:50px;"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(r,i) in currentAddress.infomerkmale" :key="r.id">
+                    <td><input v-model="r.merkmal" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.wert" class="form-control" @input="markDirty"></td>
+                    <td><input v-model="r.bemerkung" class="form-control" @input="markDirty"></td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger px-1 py-0" @click="delRow('infomerkmale',i)"><i class="bi bi-trash" style="font-size:11px;"></i></button></td>
+                  </tr>
+                  <tr v-if="!currentAddress.infomerkmale.length"><td colspan="4" class="text-center text-muted py-2">Keine Infomerkmale</td></tr>
+                </tbody>
+              </table>
+            </template>
+
+          </div><!-- /sub-content -->
+        </div><!-- /sub-area -->
+
+      </div><!-- /form-area -->
+    </div><!-- /content -->
+  </div><!-- /main -->
+
+  <!-- ═══════════════ STATUS BAR ═══════════════ -->
+  <div id="statusbar">
+    <div class="s-item">
+      <span class="s-dot" :class="isDirty ? 'warn' : 'ok'"></span>
+      {{ isDirty ? 'Ungespeicherte Änderungen' : 'Alle Änderungen gespeichert' }}
+    </div>
+    <div class="s-item" v-if="currentAddress"><i class="bi bi-hash"></i>{{ currentAddress.adressNr }}</div>
+    <div class="s-item" v-if="currentAddress"><i class="bi bi-building"></i>{{ currentAddress.name }}</div>
+    <div class="ms-auto s-item"><i class="bi bi-database"></i>{{ addresses.length }} Datensätze gesamt</div>
+  </div>
+
+</div><!-- /app -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+const { createApp, ref, computed, reactive } = Vue;
+
+const DEMO = [
+  { id:1, adressNr:'100001', kundenNr:'', lieferantenNr:'', hrNr:'HRB 12345 Bonn', anrede:'Firma', name:'Müller & Co. GmbH',
+    strasse:'Hauptstraße 42', plz:'53111', ort:'Bonn', postfach:'', postfachPlz:'', nation:'Deutschland', ustNr:'DE123456789',
+    betriebstyp:'Handel', branche:'Großhandel', branchendetail:'', umsatz:5000000, mitarbeiter:25,
+    innendienst:'Schmidt, K.', aussendienst:'Braun, M.', entfernungKm:45, anfahrzeit:'1:00',
+    kundengruppe:'Großkunde', lieferantengruppe:'', personalgruppe:'', sonstigeGruppe:'',
+    vorKaufStatus:'Stammkunde', nachKaufStatus:'Aktiv', zufriedenheit:'zufrieden', abcKlasse:'A-Kunde',
+    anfragestatus:'', lieferantenstatus:'', liefZufriedenheit:'', gesperrt:false, bookmark:true,
+    kommunikation:[{id:1,typ:'Telefon',nummer:'+49 228 123456',bemerkung:'Zentrale'},{id:2,typ:'E-Mail',nummer:'info@mueller-co.de',bemerkung:''},{id:3,typ:'Website',nummer:'www.mueller-co.de',bemerkung:''}],
+    ansprechpartner:[{id:1,anrede:'Herr',name:'Müller',vorname:'Karl',position:'Geschäftsführer',telefon:'+49 228 123456-10',email:'k.mueller@mueller-co.de'},{id:2,anrede:'Frau',name:'Weber',vorname:'Sabine',position:'Einkauf',telefon:'+49 228 123456-20',email:'s.weber@mueller-co.de'}],
+    bankkonten:[{id:1,bank:'Deutsche Bank',iban:'DE89 3704 0044 0532 0130 00',bic:'DEUTDEDB',kontoinh:'Müller & Co. GmbH'}],
+    konditionen:[{id:1,typ:'VK-Kondition',zahlungsziel:30,skonto:2,skontotage:10,waehrung:'EUR'}],
+    suchbegriffe:['Müller','GmbH','Bonn','Großkunde'], beziehungen:[],
+    infomerkmale:[{id:1,merkmal:'Messeteilnahme',wert:'ja',bemerkung:'Hannover Messe'}] },
+
+  { id:2, adressNr:'200001', kundenNr:'', lieferantenNr:'LF-0042', hrNr:'HRA 54321 Frankfurt', anrede:'Firma', name:'Technik Supply AG',
+    strasse:'Industriepark 17', plz:'60549', ort:'Frankfurt am Main', postfach:'', postfachPlz:'', nation:'Deutschland', ustNr:'DE987654321',
+    betriebstyp:'Produktion', branche:'Maschinenbau', branchendetail:'Hydraulik', umsatz:25000000, mitarbeiter:120,
+    innendienst:'Meyer, T.', aussendienst:'', entfernungKm:210, anfahrzeit:'2:30',
+    kundengruppe:'', lieferantengruppe:'Stamm-Lieferant', personalgruppe:'', sonstigeGruppe:'',
+    vorKaufStatus:'', nachKaufStatus:'', zufriedenheit:'', abcKlasse:'',
+    anfragestatus:'Qualifiziert', lieferantenstatus:'Aktiv', liefZufriedenheit:'zufrieden', gesperrt:false, bookmark:false,
+    kommunikation:[{id:1,typ:'Telefon',nummer:'+49 69 555000',bemerkung:''},{id:2,typ:'E-Mail',nummer:'einkauf@technik-supply.de',bemerkung:'Einkauf'},{id:3,typ:'Fax',nummer:'+49 69 555001',bemerkung:''}],
+    ansprechpartner:[{id:1,anrede:'Herr',name:'Becker',vorname:'Thomas',position:'Vertrieb',telefon:'+49 69 555000-30',email:'t.becker@technik-supply.de'}],
+    bankkonten:[{id:1,bank:'Commerzbank',iban:'DE12 2004 0030 0234 5670 00',bic:'COBADEFFXXX',kontoinh:'Technik Supply AG'}],
+    konditionen:[{id:1,typ:'EK-Kondition',zahlungsziel:45,skonto:3,skontotage:14,waehrung:'EUR'}],
+    suchbegriffe:['Technik','AG','Frankfurt','LF-0042'], beziehungen:[], infomerkmale:[] },
+
+  { id:3, adressNr:'100150', kundenNr:'1001-WEB', lieferantenNr:'', hrNr:'', anrede:'Herr', name:'Schneider, Andreas',
+    strasse:'Birkenweg 8', plz:'40472', ort:'Düsseldorf', postfach:'', postfachPlz:'', nation:'Deutschland', ustNr:'',
+    betriebstyp:'', branche:'Einzelhandel', branchendetail:'', umsatz:null, mitarbeiter:null,
+    innendienst:'Wolter, H.', aussendienst:'', entfernungKm:85, anfahrzeit:'1:30',
+    kundengruppe:'Endkunde', lieferantengruppe:'', personalgruppe:'', sonstigeGruppe:'',
+    vorKaufStatus:'Stammkunde', nachKaufStatus:'Aktiv', zufriedenheit:'Referenz', abcKlasse:'B-Kunde',
+    anfragestatus:'', lieferantenstatus:'', liefZufriedenheit:'', gesperrt:false, bookmark:false,
+    kommunikation:[{id:1,typ:'Mobil',nummer:'+49 170 1234567',bemerkung:''},{id:2,typ:'E-Mail',nummer:'a.schneider@email.de',bemerkung:'Privat'}],
+    ansprechpartner:[], bankkonten:[], konditionen:[],
+    suchbegriffe:['Schneider','Düsseldorf','Endkunde'], beziehungen:[], infomerkmale:[] },
+
+  { id:4, adressNr:'300010', kundenNr:'', lieferantenNr:'', hrNr:'HRB 77777 Stuttgart', anrede:'Firma', name:'Weber Consulting GmbH',
+    strasse:'Marktplatz 3', plz:'70173', ort:'Stuttgart', postfach:'10 20 30', postfachPlz:'70102', nation:'Deutschland', ustNr:'DE111222333',
+    betriebstyp:'Dienstleistung', branche:'IT / Software', branchendetail:'ERP-Beratung', umsatz:3000000, mitarbeiter:18,
+    innendienst:'Wagner, S.', aussendienst:'Fischer, A.', entfernungKm:320, anfahrzeit:'3:30',
+    kundengruppe:'Händler', lieferantengruppe:'Gelegenheits-Lieferant', personalgruppe:'', sonstigeGruppe:'',
+    vorKaufStatus:'Angebot', nachKaufStatus:'Aktiv', zufriedenheit:'zufrieden', abcKlasse:'A-Kunde',
+    anfragestatus:'', lieferantenstatus:'Aktiv', liefZufriedenheit:'zufrieden', gesperrt:false, bookmark:false,
+    kommunikation:[{id:1,typ:'Telefon',nummer:'+49 711 456789',bemerkung:'Zentrale'},{id:2,typ:'E-Mail',nummer:'info@weber-consulting.de',bemerkung:''},{id:3,typ:'Teams',nummer:'info@weber-consulting.de',bemerkung:''}],
+    ansprechpartner:[{id:1,anrede:'Frau',name:'Weber',vorname:'Claudia',position:'Geschäftsführerin',telefon:'+49 711 456789-1',email:'c.weber@weber-consulting.de'},{id:2,anrede:'Herr',name:'Klein',vorname:'Marcus',position:'Projektleitung',telefon:'+49 711 456789-2',email:'m.klein@weber-consulting.de'}],
+    bankkonten:[{id:1,bank:'Sparkasse',iban:'DE18 6005 0101 0001 0001 00',bic:'SOLADEST600',kontoinh:'Weber Consulting GmbH'}],
+    konditionen:[{id:1,typ:'VK-Kondition',zahlungsziel:14,skonto:0,skontotage:0,waehrung:'EUR'}],
+    suchbegriffe:['Weber','Consulting','Stuttgart','ERP'],
+    beziehungen:[{id:1,typ:'Partner',adresse:'TETRA GmbH',betreff:'T4-Partner'}], infomerkmale:[] },
+
+  { id:5, adressNr:'500001', kundenNr:'', lieferantenNr:'', hrNr:'', anrede:'Frau', name:'Hoffmann, Maria',
+    strasse:'Rosenstraße 12', plz:'80331', ort:'München', postfach:'', postfachPlz:'', nation:'Deutschland', ustNr:'',
+    betriebstyp:'', branche:'', branchendetail:'', umsatz:null, mitarbeiter:null,
+    innendienst:'Schmidt, K.', aussendienst:'', entfernungKm:580, anfahrzeit:'5:30',
+    kundengruppe:'', lieferantengruppe:'', personalgruppe:'Mitarbeiter', sonstigeGruppe:'',
+    vorKaufStatus:'', nachKaufStatus:'', zufriedenheit:'', abcKlasse:'',
+    anfragestatus:'', lieferantenstatus:'', liefZufriedenheit:'', gesperrt:false, bookmark:false,
+    kommunikation:[{id:1,typ:'Mobil',nummer:'+49 160 9876543',bemerkung:''},{id:2,typ:'E-Mail',nummer:'m.hoffmann@firma.de',bemerkung:'Dienst'}],
+    ansprechpartner:[], bankkonten:[], konditionen:[],
+    suchbegriffe:['Hoffmann','München','Personal'], beziehungen:[], infomerkmale:[] },
+
+  { id:6, adressNr:'100090', kundenNr:'', lieferantenNr:'', hrNr:'HRB 99999 Berlin', anrede:'Firma', name:'DataTech Solutions GmbH',
+    strasse:'Unter den Linden 77', plz:'10117', ort:'Berlin', postfach:'', postfachPlz:'', nation:'Deutschland', ustNr:'DE444555666',
+    betriebstyp:'Dienstleistung', branche:'IT / Software', branchendetail:'Cloud & SaaS', umsatz:8000000, mitarbeiter:42,
+    innendienst:'Meyer, T.', aussendienst:'Becker, J.', entfernungKm:590, anfahrzeit:'5:00',
+    kundengruppe:'Key Account', lieferantengruppe:'', personalgruppe:'', sonstigeGruppe:'',
+    vorKaufStatus:'Stammkunde', nachKaufStatus:'Aktiv', zufriedenheit:'Referenz', abcKlasse:'A-Kunde',
+    anfragestatus:'', lieferantenstatus:'', liefZufriedenheit:'', gesperrt:true, bookmark:false,
+    kommunikation:[{id:1,typ:'Telefon',nummer:'+49 30 9876500',bemerkung:''},{id:2,typ:'E-Mail',nummer:'info@datatech.de',bemerkung:''}],
+    ansprechpartner:[{id:1,anrede:'Herr',name:'Schwarze',vorname:'Peter',position:'CEO',telefon:'+49 30 9876500-1',email:'p.schwarze@datatech.de'}],
+    bankkonten:[], konditionen:[],
+    suchbegriffe:['DataTech','Berlin','Cloud','Key Account'], beziehungen:[], infomerkmale:[] },
+];
+
+createApp({
+  setup() {
+    const saved = localStorage.getItem('t4_adressen_v1');
+    const addresses = ref(saved ? JSON.parse(saved).map(a => reactive({...a})) : DEMO.map(a => reactive({...a})));
+
+    const currentId   = ref(addresses.value[0]?.id ?? null);
+    const searchQuery = ref('');
+    const filterGroup = ref('');
+    const isDirty     = ref(false);
+    const activeGTab  = ref('kunde');
+    const activeSTab  = ref('kom');
+    const newTag      = ref('');
+    const searchInput = ref(null);
+
+    const groupTabs = [
+      {key:'kunde',label:'Kunde'},{key:'lieferant',label:'Lieferant'},
+      {key:'personal',label:'Perso'},{key:'sonstiges',label:'Sonst.'}
+    ];
+    const subTabs = [
+      {key:'kom',  label:'Kommunikation',  icon:'bi-telephone'},
+      {key:'asp',  label:'Ansprechpartner',icon:'bi-person'},
+      {key:'bank', label:'Bankkonten',      icon:'bi-bank'},
+      {key:'kond', label:'Konditionen',     icon:'bi-percent'},
+      {key:'such', label:'Suchbegriffe',    icon:'bi-tags'},
+      {key:'bez',  label:'Beziehungen',     icon:'bi-diagram-3'},
+      {key:'info', label:'Infomerkmale',    icon:'bi-info-circle'},
+    ];
+
+    const filteredAddresses = computed(() => {
+      let r = addresses.value;
+      if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        r = r.filter(a =>
+          a.name.toLowerCase().includes(q) ||
+          a.adressNr.toLowerCase().includes(q) ||
+          a.ort.toLowerCase().includes(q) ||
+          (a.plz||'').includes(q) ||
+          (a.suchbegriffe||[]).some(s => s.toLowerCase().includes(q))
+        );
+      }
+      if (filterGroup.value==='Kunde')     r = r.filter(a => a.kundengruppe);
+      if (filterGroup.value==='Lieferant') r = r.filter(a => a.lieferantengruppe);
+      if (filterGroup.value==='Personal')  r = r.filter(a => a.personalgruppe);
+      return r;
+    });
+
+    const currentAddress = computed(() => addresses.value.find(a => a.id === currentId.value) ?? null);
+    const canPrev = computed(() => { const i = filteredAddresses.value.findIndex(a=>a.id===currentId.value); return i>0; });
+    const canNext = computed(() => { const i = filteredAddresses.value.findIndex(a=>a.id===currentId.value); return i>=0 && i<filteredAddresses.value.length-1; });
+
+    function addrIcon(a) {
+      if (a.personalgruppe) return 'bi-person-badge';
+      if (a.anrede==='Herr'||a.anrede==='Frau'||a.anrede==='Divers') return 'bi-person';
+      if (a.kundengruppe && a.lieferantengruppe) return 'bi-arrow-left-right';
+      if (a.lieferantengruppe) return 'bi-truck';
+      return 'bi-building';
+    }
+
+    function hasGroup(key) {
+      const a = currentAddress.value;
+      if (!a) return false;
+      return key==='kunde'?!!a.kundengruppe : key==='lieferant'?!!a.lieferantengruppe : key==='personal'?!!a.personalgruppe : !!a.sonstigeGruppe||a.gesperrt;
+    }
+
+    function subCount(key) {
+      const a = currentAddress.value;
+      if (!a) return 0;
+      const map = {kom:'kommunikation',asp:'ansprechpartner',bank:'bankkonten',kond:'konditionen',such:'suchbegriffe',bez:'beziehungen',info:'infomerkmale'};
+      return (a[map[key]]||[]).length;
+    }
+
+    function markDirty() { isDirty.value = true; }
+
+    function selectAddress(addr) {
+      if (isDirty.value && !confirm('Ungespeicherte Änderungen verwerfen?')) return;
+      currentId.value = addr.id;
+      isDirty.value = false;
+    }
+
+    function newAddress() {
+      if (isDirty.value && !confirm('Ungespeicherte Änderungen verwerfen?')) return;
+      const a = reactive({
+        id: Date.now(), adressNr: String(100000 + addresses.value.length + 1),
+        kundenNr:'', lieferantenNr:'', hrNr:'', anrede:'Firma', name:'',
+        strasse:'', plz:'', ort:'', postfach:'', postfachPlz:'', nation:'Deutschland', ustNr:'',
+        betriebstyp:'', branche:'', branchendetail:'', umsatz:null, mitarbeiter:null,
+        innendienst:'', aussendienst:'', entfernungKm:null, anfahrzeit:'',
+        kundengruppe:'Endkunde', lieferantengruppe:'', personalgruppe:'', sonstigeGruppe:'',
+        vorKaufStatus:'', nachKaufStatus:'', zufriedenheit:'', abcKlasse:'',
+        anfragestatus:'', lieferantenstatus:'', liefZufriedenheit:'',
+        gesperrt:false, bookmark:false,
+        kommunikation:[], ansprechpartner:[], bankkonten:[],
+        konditionen:[], suchbegriffe:[], beziehungen:[], infomerkmale:[],
+      });
+      addresses.value.push(a);
+      currentId.value = a.id;
+      isDirty.value = true;
+    }
+
+    function saveAddress() {
+      localStorage.setItem('t4_adressen_v1', JSON.stringify(addresses.value));
+      isDirty.value = false;
+    }
+
+    function deleteAddress() {
+      if (!currentId.value) return;
+      if (!confirm('Datensatz wirklich löschen?')) return;
+      const i = addresses.value.findIndex(a=>a.id===currentId.value);
+      if (i>=0) { addresses.value.splice(i,1); currentId.value = addresses.value[0]?.id??null; isDirty.value=false; saveAddress(); }
+    }
+
+    function prevAddress() {
+      const i = filteredAddresses.value.findIndex(a=>a.id===currentId.value);
+      if (i>0) selectAddress(filteredAddresses.value[i-1]);
+    }
+    function nextAddress() {
+      const i = filteredAddresses.value.findIndex(a=>a.id===currentId.value);
+      if (i>=0 && i<filteredAddresses.value.length-1) selectAddress(filteredAddresses.value[i+1]);
+    }
+
+    function toggleBookmark() {
+      if (!currentAddress.value) return;
+      currentAddress.value.bookmark = !currentAddress.value.bookmark;
+      markDirty();
+    }
+
+    function focusSearch() { searchInput.value?.focus(); }
+
+    function addRow(field, template) {
+      currentAddress.value[field].push({id:Date.now(),...template});
+      markDirty();
+    }
+    function delRow(field, idx) { currentAddress.value[field].splice(idx,1); markDirty(); }
+
+    function addTag() {
+      const t = newTag.value.trim();
+      if (t && !currentAddress.value.suchbegriffe.includes(t)) {
+        currentAddress.value.suchbegriffe.push(t);
+        markDirty();
+      }
+      newTag.value = '';
+    }
+
+    // Ctrl+S
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); saveAddress(); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='f') { e.preventDefault(); focusSearch(); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); newAddress(); }
+    });
+
+    return {
+      addresses, currentId, currentAddress, searchQuery, filterGroup,
+      isDirty, activeGTab, activeSTab, newTag, searchInput,
+      groupTabs, subTabs, filteredAddresses, canPrev, canNext,
+      addrIcon, hasGroup, subCount, markDirty,
+      selectAddress, newAddress, saveAddress, deleteAddress,
+      prevAddress, nextAddress, toggleBookmark, focusSearch,
+      addRow, delRow, addTag,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
